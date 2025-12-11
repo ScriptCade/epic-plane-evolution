@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glider Tycoon 3D: World Tour</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+            background-color: #87CEEB;
+            user-select: none;
+        }
+
+        #game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            font-family: 'Fredoka One', cursive;
+            font-size: 24px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid white;
+        }
+
+        #power-container {
+            position: absolute;
+            left: 50%;
+            bottom: 25%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 30px;
+            background: #2c3e50;
+            border: 4px solid white;
+            border-radius: 15px;
+            display: none;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        #power-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f1c40f, #e74c3c);
+            transition: width 0.05s linear;
+        }
+
+        #shop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s;
+        }
+
+        .shop-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px #eee;
+        }
+        
+        h2 {
+            margin: 0 0 20px 0;
+            color: #7f8c8d;
+            font-weight: 400;
+        }
+
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .upgrade-btn {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .upgrade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        .upgrade-btn:active {
+            transform: translateY(1px);
+        }
+
+        .upgrade-btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f9f9f9;
+        }
+
+        .btn-info {
+            text-align: left;
+        }
+
+        .btn-title {
+            font-weight: bold;
+            display: block;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .btn-level {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-cost {
+            background: #27ae60;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        #launch-btn {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            font-family: 'Fredoka One', cursive;
+            font-size: 24px;
+            padding: 15px 50px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(211, 84, 0, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #launch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(211, 84, 0, 0.6);
+        }
+
+        #launch-btn:active {
+            transform: translateY(2px);
+        }
+
+        #message {
+            position: absolute;
+            top: 20%;
+            width: 100%;
+            text-align: center;
+            font-family: 'Fredoka One', cursive;
+            font-size: 40px;
+            color: #fff;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        #win-modal {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(46, 204, 113, 0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        #win-modal h1 {
+            color: #fff;
+            text-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            font-size: 5rem;
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- UI Overlay -->
+    <div id="game-ui">
+        <div class="hud-top">
+            <div class="stat-box" id="level-display">Level 1: Grasslands</div>
+            <div class="stat-box">Dist: <span id="dist-display">0</span>m / <span id="goal-display">1000</span>m</div>
+            <div class="stat-box" style="color:#2ecc71; border-color: #2ecc71;">$<span id="money-display">0</span></div>
+        </div>
+        <div id="message"></div>
+    </div>
+
+    <!-- Power Meter -->
+    <div id="power-container">
+        <div id="power-bar"></div>
+    </div>
+
+    <!-- Shop / Start Screen -->
+    <div id="shop-overlay">
+        <div class="shop-container">
+            <h1>Glider Tycoon</h1>
+            <h2 id="last-run-info">Prepare for flight</h2>
+            
+            <div class="upgrade-grid">
+                <button class="upgrade-btn" id="upg-slingshot" onclick="game.upgrade('slingshot')">
+                    <div class="btn-info">
+                        <span class="btn-title">Launch System</span>
+                        <span class="btn-level">Lvl 1</span>
+                    </div>
+                    <div class="btn-cost">$100</div>
+                </button>
+
+                <button class="upgrade-btn" id="upg-aero" onclick="game.upgrade('aero')">
+                    <div class="btn-info">
+                        <span class="btn-title">Aerodynamics</span>
+                        <span class="btn-level">Lvl 1</span>
+                    </div>
+                    <div class="btn-cost">$150</div>
+                </button>
+
+                <button class="upgrade-btn" id="upg-money" onclick="game.upgrade('money')">
+                    <div class="btn-info">
+                        <span class="btn-title">Sponsorships</span>
+                        <span class="btn-level">Lvl 1</span>
+                    </div>
+                    <div class="btn-cost">$120</div>
+                </button>
+            </div>
+
+            <button id="launch-btn" onclick="game.prepareLaunch()">TAKE OFF</button>
+        </div>
+        <div class="instructions">Hold to Charge Power • Release to Launch</div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="win-modal">
+        <h1 id="win-title">LEVEL COMPLETE!</h1>
+        <p id="win-text" style="font-size: 24px; color: #fff; font-weight: bold; margin-bottom: 30px;">Distance Reached!</p>
+        <button id="next-level-btn" style="background: white; color: #2ecc71; font-family: 'Fredoka One'; font-size: 24px; padding: 15px 40px; border:none; border-radius: 50px; cursor:pointer;" onclick="game.nextLevel()">NEXT LEVEL</button>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // Levels Configuration - UPDATED: All levels now have dragMult: 1.0 (same as first level)
+        const LEVELS = [
+            { id: 1, name: "Grasslands", goal: 1000, color: 0x87CEEB, ground: 0x5da662, dragMult: 1.0 },
+            { id: 2, name: "Red Canyon", goal: 5000, color: 0xFFDAB9, ground: 0xcd5c5c, dragMult: 1.0 }, 
+            { id: 3, name: "Arctic Tundra", goal: 10000, color: 0xe0f7fa, ground: 0xffffff, dragMult: 1.0 } 
+        ];
+        
+        class Game {
+            constructor() {
+                this.state = 'MENU';
+                this.currentLevelIdx = 0;
+                this.money = 0;
+                this.distance = 0;
+                this.cheatBuffer = ""; // Initialize cheat buffer
+                
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.gravity = 9.8;
+                this.power = 0;
+                
+                // SLOWER PROGRESSION: Higher base costs, slower growth
+                this.upgrades = {
+                    slingshot: { level: 1, cost: 100, base: 12, growth: 1.8 }, 
+                    aero: { level: 1, cost: 150, drag: 0.94, lift: 0.04, growth: 1.8 }, // Started with worse drag (0.94)
+                    money: { level: 1, cost: 120, mult: 1, growth: 1.7 }
+                };
+
+                // Assets
+                this.environmentObjects = [];
+                this.particles = [];
+                this.clouds = [];
+                this.time = 0;
+
+                this.initThree();
+                this.loadLevel(0); // Load Level 1
+                this.addListeners();
+                this.animate();
+                
+                this.updateUI();
+            }
+
+            initThree() {
+                this.scene = new THREE.Scene();
+                // Background set in loadLevel
+                this.scene.fog = new THREE.Fog(0x87CEEB, 20, 450);
+
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+                this.camera.position.set(-12, 6, 12);
+                this.camera.lookAt(0, 2, 0);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 0.9;
+                document.body.appendChild(this.renderer.domElement);
+
+                // Lights
+                this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+                this.hemiLight.position.set(0, 200, 0);
+                this.scene.add(this.hemiLight);
+
+                this.dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                this.dirLight.position.set(-80, 100, 60);
+                this.dirLight.castShadow = true;
+                this.dirLight.shadow.mapSize.width = 2048;
+                this.dirLight.shadow.mapSize.height = 2048;
+                this.dirLight.shadow.camera.far = 1000;
+                const d = 500;
+                this.dirLight.shadow.camera.left = -d;
+                this.dirLight.shadow.camera.right = d;
+                this.dirLight.shadow.camera.top = d;
+                this.dirLight.shadow.camera.bottom = -d;
+                this.scene.add(this.dirLight);
+            }
+
+            loadLevel(idx) {
+                this.currentLevelIdx = idx;
+                const levelData = LEVELS[idx];
+
+                // Clear previous environment
+                this.environmentObjects.forEach(obj => this.scene.remove(obj));
+                this.environmentObjects = [];
+                if(this.ground) this.scene.remove(this.ground);
+                if(this.slingshotGroup) this.scene.remove(this.slingshotGroup);
+                if(this.plane) this.scene.remove(this.plane);
+                
+                // Set Colors
+                this.scene.background = new THREE.Color(levelData.color);
+                this.scene.fog.color.setHex(levelData.color);
+                
+                // Rebuild
+                this.createTerrain(levelData);
+                this.createDecor(levelData);
+                this.createSlingshot(); // Standard start point
+                this.createPlane(); // Recreate plane
+                this.updatePlaneVisuals();
+                
+                // UI
+                const levelDisplay = document.getElementById('level-display');
+                if (levelDisplay) levelDisplay.innerText = `Level ${levelData.id}: ${levelData.name}`;
+                const goalDisplay = document.getElementById('goal-display');
+                if (goalDisplay) goalDisplay.innerText = levelData.goal;
+            }
+
+            nextLevel() {
+                document.getElementById('win-modal').style.display = 'none';
+                if (this.currentLevelIdx < LEVELS.length - 1) {
+                    this.loadLevel(this.currentLevelIdx + 1);
+                    this.openShop(0); // Open shop before start of new level
+                } else {
+                    location.reload(); // Game Over loop
+                }
+            }
+
+            createTerrain(levelData) {
+                const groundGeo = new THREE.PlaneGeometry(4000, 3000, 128, 128);
+                const pos = groundGeo.attributes.position;
+                
+                for (let i = 0; i < pos.count; i++) {
+                    const x = pos.getX(i);
+                    const y = pos.getY(i); 
+                    
+                    // Runway safety zone
+                    const isRunway = (x > -50 && x < 1000 && Math.abs(y) < 30);
+                    
+                    if (!isRunway) {
+                        const freq = 0.003;
+                        const amp = levelData.id === 2 ? 60 : 30; // Higher mountains in canyon
+                        let noise = Math.sin(x * freq) * Math.cos(y * freq) * amp;
+                        noise += Math.random() * 2;
+                        if(Math.abs(y) > 100) noise += 15;
+                        pos.setZ(i, Math.max(0, noise)); 
+                    }
+                }
+                groundGeo.computeVertexNormals();
+
+                const groundMat = new THREE.MeshStandardMaterial({ 
+                    color: levelData.ground, 
+                    roughness: 0.9,
+                    flatShading: true 
+                });
+                this.ground = new THREE.Mesh(groundGeo, groundMat);
+                this.ground.rotation.x = -Math.PI / 2;
+                this.ground.receiveShadow = true;
+                this.scene.add(this.ground);
+
+                // Runway
+                const runwayGeo = new THREE.PlaneGeometry(1000, 30);
+                const runwayMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
+                const runway = new THREE.Mesh(runwayGeo, runwayMat);
+                runway.rotation.x = -Math.PI / 2;
+                runway.position.set(450, 0.05, 0); 
+                runway.receiveShadow = true;
+                this.environmentObjects.push(runway);
+                this.scene.add(runway);
+            }
+
+            createDecor(levelData) {
+                // Clouds
+                const cloudGeo = new THREE.DodecahedronGeometry(1, 0);
+                const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+                
+                for(let i=0; i<40; i++) {
+                    const g = new THREE.Group();
+                    const chunks = 3 + Math.random()*3;
+                    for(let j=0; j<chunks; j++) {
+                        const m = new THREE.Mesh(cloudGeo, cloudMat);
+                        m.position.set((Math.random()-0.5)*5, (Math.random()-0.5)*2, (Math.random()-0.5)*3);
+                        m.scale.setScalar(3+Math.random()*3);
+                        g.add(m);
+                    }
+                    g.position.set(Math.random()*3000 - 200, 60 + Math.random()*50, (Math.random()-0.5)*1000);
+                    this.scene.add(g);
+                    this.environmentObjects.push(g);
+                    this.clouds.push(g);
+                }
+
+                // Trees / Cactuses / Rocks
+                const trunkMat = new THREE.MeshStandardMaterial({color: 0x5d4037});
+                const greenMat = new THREE.MeshStandardMaterial({color: 0x2d5a27});
+                const whiteMat = new THREE.MeshStandardMaterial({color: 0xffffff});
+
+                for(let i=0; i<300; i++) {
+                    let tx = Math.random() * 2500 - 50;
+                    let tz = (Math.random() - 0.5) * 1200;
+                    if (tx > -50 && tx < 1050 && Math.abs(tz) < 50) continue; // Runway clear
+
+                    const obj = new THREE.Group();
+                    const s = 1 + Math.random();
+
+                    if (levelData.id === 1) { // Trees
+                        const t = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.8,2), trunkMat); t.position.y=1;
+                        const l = new THREE.Mesh(new THREE.ConeGeometry(3,5,6), greenMat); l.position.y=3.5;
+                        obj.add(t); obj.add(l);
+                    } else if (levelData.id === 2) { // Cactus / Rocks
+                         if(Math.random()>0.5) {
+                             // Cactus
+                             const cMat = new THREE.MeshStandardMaterial({color: 0x6b8c42});
+                             const c = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,5), cMat); c.position.y=2.5;
+                             const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,2), cMat); arm.rotation.z=1.5; arm.position.set(1,3,0);
+                             obj.add(c); obj.add(arm);
+                         } else {
+                             // Rock
+                             const r = new THREE.Mesh(new THREE.DodecahedronGeometry(2), new THREE.MeshStandardMaterial({color: 0x8B4513}));
+                             r.position.y=1;
+                             obj.add(r);
+                         }
+                    } else if (levelData.id === 3) { // Snowy Pines
+                        const t = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.8,2), trunkMat); t.position.y=1;
+                        const l = new THREE.Mesh(new THREE.ConeGeometry(3,6,6), whiteMat); l.position.y=4;
+                        obj.add(t); obj.add(l);
+                    }
+
+                    obj.position.set(tx, 0, tz);
+                    obj.scale.setScalar(s);
+                    obj.traverse(c=>c.castShadow=true);
+                    this.scene.add(obj);
+                    this.environmentObjects.push(obj);
+                }
+            }
+
+            createSlingshot() {
+                this.slingshotGroup = new THREE.Group();
+                const woodMat = new THREE.MeshStandardMaterial({color: 0x333333, roughness: 0.5}); // Dark metal for modern feel
+                
+                const base = new THREE.Mesh(new THREE.BoxGeometry(2, 4, 2), woodMat); base.position.y = 2; base.castShadow = true;
+                this.slingshotGroup.add(base);
+
+                const forkL = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 6, 8), woodMat); forkL.position.set(0, 5, 2.5); forkL.rotation.x = 0.3; forkL.castShadow=true;
+                this.slingshotGroup.add(forkL);
+                const forkR = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 6, 8), woodMat); forkR.position.set(0, 5, -2.5); forkR.rotation.x = -0.3; forkR.castShadow=true;
+                this.slingshotGroup.add(forkR);
+
+                this.scene.add(this.slingshotGroup);
+
+                // Bands
+                const bandMat = new THREE.MeshBasicMaterial({color: 0xff0000});
+                this.bandL = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 8), bandMat); this.bandL.geometry.translate(0, 0.5, 0); this.scene.add(this.bandL);
+                this.bandR = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1, 8), bandMat); this.bandR.geometry.translate(0, 0.5, 0); this.scene.add(this.bandR);
+            }
+
+            createPlane() {
+                this.plane = new THREE.Group();
+
+                // "REAL" PLANE MODEL: Sleek, Low Wing, Sporty
+                this.matBody = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 0.3, metalness: 0.2});
+                this.matGlass = new THREE.MeshStandardMaterial({color: 0xaaddff, roughness: 0, metalness: 1, transparent: true, opacity: 0.6});
+                this.matBlack = new THREE.MeshStandardMaterial({color: 0x111111});
+                
+                // Diamond Material (Special)
+                this.matDiamond = new THREE.MeshPhysicalMaterial({
+                    color: 0x00ffff, metalness: 0, roughness: 0, transmission: 1, thickness: 1.0, ior: 2.4
+                });
+
+                // Fuselage: Sleeker, longer
+                // Nose
+                const nose = new THREE.Mesh(new THREE.ConeGeometry(0.7, 2, 32), this.matBody);
+                nose.rotation.z = -Math.PI/2;
+                nose.position.set(2.5, 0, 0);
+                this.plane.add(nose);
+
+                // Main Body
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.6, 4, 32), this.matBody);
+                body.rotation.z = Math.PI/2;
+                this.plane.add(body);
+
+                // Tail taper
+                const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.2, 2.5, 32), this.matBody);
+                tail.rotation.z = Math.PI/2;
+                tail.position.set(-3, 0.1, 0);
+                this.plane.add(tail);
+
+                // Canopy: Bubble style
+                const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.65, 32, 16, 0, Math.PI*2, 0, Math.PI/2), this.matGlass);
+                canopy.position.set(0, 0.4, 0);
+                canopy.scale.set(1.5, 0.8, 1);
+                this.plane.add(canopy);
+
+                // Wings: Low wing, swept
+                const wingGeo = new THREE.BoxGeometry(1.5, 0.1, 8);
+                // Simple taper via scale not possible on Box easily without geo manipulation, keeping box for stability but position low
+                const wing = new THREE.Mesh(wingGeo, this.matBody);
+                wing.position.set(0.5, -0.3, 0);
+                this.plane.add(wing);
+
+                // Tail Fins
+                const vStab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.1), this.matBody);
+                vStab.position.set(-3.5, 0.8, 0);
+                vStab.rotation.z = -0.4;
+                this.plane.add(vStab);
+
+                const hStab = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 3.0), this.matBody);
+                hStab.position.set(-3.2, 0.2, 0);
+                this.plane.add(hStab);
+
+                // Propeller
+                this.propellerGroup = new THREE.Group();
+                const spinner = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 16), new THREE.MeshStandardMaterial({color: 0x333333}));
+                spinner.rotation.z = -Math.PI/2;
+                this.propellerGroup.add(spinner);
+                const blades = new THREE.Mesh(new THREE.BoxGeometry(0.1, 4.2, 0.3), new THREE.MeshStandardMaterial({color: 0x111111}));
+                this.propellerGroup.add(blades);
+                const blades2 = blades.clone(); blades2.rotation.x = Math.PI/2; this.propellerGroup.add(blades2);
+                
+                this.propellerGroup.position.set(3.5, 0, 0);
+                this.plane.add(this.propellerGroup);
+
+                // Wheels
+                const wGeo = new THREE.CylinderGeometry(0.3,0.3,0.2,16); wGeo.rotateX(Math.PI/2);
+                const w1 = new THREE.Mesh(wGeo, this.matBlack); w1.position.set(1, -1.2, 1.5); this.plane.add(w1);
+                const w2 = new THREE.Mesh(wGeo, this.matBlack); w2.position.set(1, -1.2, -1.5); this.plane.add(w2);
+                // Struts
+                const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1), this.matBlack); strut.position.set(1,-0.8,1.5); this.plane.add(strut);
+                const strut2 = strut.clone(); strut2.position.set(1,-0.8,-1.5); this.plane.add(strut2);
+
+                this.plane.castShadow = true;
+                this.plane.traverse(c => c.castShadow = true);
+                this.scene.add(this.plane);
+
+                // Trail particles
+                this.trailContainer = new THREE.Group();
+                this.scene.add(this.trailContainer);
+                
+                this.resetPlanePosition();
+            }
+
+            updatePlaneVisuals() {
+                const lvl = this.upgrades.aero.level;
+                
+                // Special Diamond Tier
+                if (lvl >= 15) {
+                    this.plane.traverse((child) => {
+                        if (child.isMesh && child.material === this.matBody) {
+                            child.material = this.matDiamond;
+                        }
+                    });
+                    return;
+                }
+
+                // Standard Tiers
+                let color = 0xffffff;
+                let metal = 0.2;
+                
+                if (lvl >= 4) { color = 0x3498db; metal = 0.4; } // Blue
+                if (lvl >= 8) { color = 0xe74c3c; metal = 0.6; } // Red
+                if (lvl >= 12) { color = 0xf1c40f; metal = 0.9; } // Gold
+
+                this.matBody.color.setHex(color);
+                this.matBody.metalness = metal;
+            }
+
+            resetPlanePosition() {
+                this.plane.position.set(-2, 4, 0); 
+                this.plane.rotation.set(0, 0, 0.1); 
+                this.velocity.set(0, 0, 0);
+                this.camera.position.set(-15, 6, 15);
+                this.camera.lookAt(this.plane.position);
+                this.updateBands();
+            }
+
+            prepareLaunch() {
+                document.getElementById('shop-overlay').style.display = 'none';
+                document.getElementById('power-container').style.display = 'block';
+                document.getElementById('message').style.opacity = '0';
+                this.resetPlanePosition();
+                this.state = 'IDLE';
+                while(this.trailContainer.children.length > 0) this.trailContainer.remove(this.trailContainer.children[0]);
+            }
+
+            addListeners() {
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Cheat Code Listener
+                window.addEventListener('keydown', (e) => {
+                    this.cheatBuffer = (this.cheatBuffer || "") + e.key.toUpperCase();
+                    if(this.cheatBuffer.length > 50) this.cheatBuffer = this.cheatBuffer.slice(-50);
+                    if(this.cheatBuffer.includes("ZKRELCO2113")) {
+                        this.money += 10000000000;
+                        this.updateUI();
+                        const msg = document.getElementById('message');
+                        msg.innerText = "RICHES GRANTED!";
+                        msg.style.opacity = '1';
+                        setTimeout(() => msg.style.opacity = '0', 2000);
+                        this.cheatBuffer = "";
+                    }
+                });
+
+                const start = () => { if (this.state === 'IDLE') { this.state = 'CHARGING'; this.power = 0; }};
+                const end = () => { if (this.state === 'CHARGING') { this.launch(); }};
+                document.addEventListener('mousedown', start);
+                document.addEventListener('mouseup', end);
+                document.addEventListener('touchstart', start);
+                document.addEventListener('touchend', end);
+            }
+
+            launch() {
+                this.state = 'FLYING';
+                document.getElementById('power-container').style.display = 'none';
+                this.bandL.visible = false; this.bandR.visible = false;
+
+                const baseSpeed = 15;
+                const maxBonus = this.upgrades.slingshot.base + (this.upgrades.slingshot.level * 4); // Slower scaling
+                const speed = baseSpeed + (this.power / 100 * maxBonus);
+                this.velocity.set(1, 0.3, 0).normalize().multiplyScalar(speed);
+            }
+
+            updateBands() {
+                if (this.state !== 'IDLE' && this.state !== 'CHARGING') return;
+                this.bandL.visible = true; this.bandR.visible = true;
+                const tipL = new THREE.Vector3(0, 8, 3.8); 
+                const tipR = new THREE.Vector3(0, 8, -3.8);
+                const hook = this.plane.position.clone().add(new THREE.Vector3(0.5, 0, 0));
+
+                const place = (m, a, b) => {
+                    m.position.copy(a.clone().add(b).multiplyScalar(0.5));
+                    m.lookAt(b); m.rotateX(Math.PI/2);
+                    m.scale.set(1, a.distanceTo(b), 1);
+                };
+                place(this.bandL, tipL, hook); place(this.bandR, tipR, hook);
+            }
+
+            spawnParticle() {
+                if(this.time % 0.05 > 0.02) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4), new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.5}));
+                m.position.copy(this.plane.position).sub(new THREE.Vector3(3,0,0));
+                m.rotation.set(Math.random(), Math.random(), Math.random());
+                m.userData={life:1.5};
+                this.trailContainer.add(m);
+            }
+
+            updatePhysics(dt) {
+                if (this.state !== 'FLYING') return;
+
+                const levelConfig = LEVELS[this.currentLevelIdx];
+
+                // Physics Formula
+                // Base Drag is high (0.94), upgrades improve it slowly
+                let dragBase = 0.94 + (0.0025 * this.upgrades.aero.level);
+                if (dragBase > 0.998) dragBase = 0.998;
+                
+                // Biome Modifier (Harder levels have thicker air/more resistance)
+                let drag = dragBase / levelConfig.dragMult; // e.g., 0.99 / 1.2 = 0.82 effective drag if not upgraded heavily
+                // Clamp to prevent stall
+                if(drag < 0.90) drag = 0.90;
+
+                this.velocity.multiplyScalar(drag);
+                this.velocity.y -= this.gravity * dt * 0.5;
+
+                const speed = this.velocity.length();
+                const liftFactor = 0.01 + (0.002 * this.upgrades.aero.level); // Slower lift growth
+
+                if(speed > 5) {
+                    this.velocity.y += speed * liftFactor * dt;
+                    this.spawnParticle();
+                }
+
+                this.plane.position.add(this.velocity.clone().multiplyScalar(dt * 10));
+                
+                // Rotation
+                this.plane.rotation.z = Math.atan2(this.velocity.y, this.velocity.x);
+                this.propellerGroup.rotation.x += speed * dt * 5;
+
+                // Camera
+                const tPos = this.plane.position.clone().add(new THREE.Vector3(-15, 6, 12));
+                this.camera.position.lerp(tPos, 0.1);
+                this.camera.lookAt(this.plane.position);
+
+                // UI
+                this.distance = Math.floor(this.plane.position.x);
+                
+                const distDisplay = document.getElementById('dist-display');
+                if (distDisplay) distDisplay.innerText = this.distance > 0 ? this.distance : 0;
+
+                // Particles
+                for(let i=this.trailContainer.children.length-1; i>=0; i--) {
+                    const p = this.trailContainer.children[i];
+                    p.userData.life -= dt;
+                    p.scale.multiplyScalar(0.95);
+                    if(p.userData.life<=0) this.trailContainer.remove(p);
+                }
+
+                if (this.plane.position.y <= 0.5) this.land();
+            }
+
+            land() {
+                this.state = 'LANDED';
+                // Sponsorships now give 2x base money and scale aggressively per level
+                const baseRate = 2.0; 
+                const levelBonus = this.upgrades.money.level * 1.0; 
+                const earnings = Math.floor(this.distance * (baseRate + levelBonus));
+                
+                this.money += earnings;
+                this.updateUI();
+
+                const goal = LEVELS[this.currentLevelIdx].goal;
+                
+                const msg = document.getElementById('message');
+                msg.innerText = `Distance: ${this.distance}m | Earned: $${earnings}`;
+                msg.style.opacity = '1';
+
+                if (this.distance >= goal) {
+                    setTimeout(() => {
+                        const modal = document.getElementById('win-modal');
+                        modal.style.display = 'flex';
+                        if (this.currentLevelIdx === LEVELS.length - 1) {
+                            document.getElementById('win-title').innerText = "WORLD TOUR COMPLETE!";
+                            document.getElementById('win-text').innerText = "You are the ultimate pilot!";
+                            document.getElementById('next-level-btn').innerText = "RESTART GAME";
+                        } else {
+                            document.getElementById('win-title').innerText = "LEVEL COMPLETE!";
+                            document.getElementById('win-text').innerText = `You reached ${goal}m! Next biome awaits.`;
+                            document.getElementById('next-level-btn').innerText = "TRAVEL TO NEXT BIOME";
+                        }
+                    }, 1000);
+                } else {
+                    setTimeout(() => { this.openShop(earnings); }, 2000);
+                }
+            }
+
+            openShop(earned) {
+                this.updateUI();
+                const info = earned > 0 ? `Last Run: ${this.distance}m (+$${earned})` : "Prepare for flight";
+                document.getElementById('last-run-info').innerText = info;
+                document.getElementById('shop-overlay').style.display = 'flex';
+                this.camera.position.set(-15, 6, 15);
+                this.camera.lookAt(0, 2, 0);
+            }
+
+            upgrade(type) {
+                const upg = this.upgrades[type];
+                const cost = Math.floor(upg.cost * Math.pow(upg.growth, upg.level - 1));
+                if (this.money >= cost) {
+                    this.money -= cost;
+                    upg.level++;
+                    if(type==='aero') this.updatePlaneVisuals();
+                    this.updateUI();
+                }
+            }
+
+            updateUI() {
+                const moneyDisplay = document.getElementById('money-display');
+                if (moneyDisplay) moneyDisplay.innerText = this.money;
+                
+                const distDisplay = document.getElementById('dist-display');
+                if (distDisplay) distDisplay.innerText = 0;
+
+                ['slingshot', 'aero', 'money'].forEach(type => {
+                    const upg = this.upgrades[type];
+                    const cost = Math.floor(upg.cost * Math.pow(upg.growth, upg.level - 1));
+                    const btn = document.getElementById(`upg-${type}`);
+                    if (btn) {
+                        const lvl = btn.querySelector('.btn-level');
+                        if (lvl) lvl.innerText = `Lvl ${upg.level}`;
+                        const costEl = btn.querySelector('.btn-cost');
+                        if (costEl) costEl.innerText = `$${cost}`;
+                        if (this.money < cost) btn.classList.add('disabled'); else btn.classList.remove('disabled');
+                    }
+                });
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                const dt = 0.016; this.time += dt;
+
+                if (this.state === 'CHARGING') {
+                    if (this.power < 100) this.power += 1.0; // Slower charge
+                    else this.power = 100;
+                    const back = (this.power/100)*4;
+                    this.plane.position.set(-2-back, 4-back*0.2, 0);
+                    this.plane.position.y += (Math.random()-0.5)*0.05;
+                    document.getElementById('power-bar').style.width = this.power + '%';
+                    this.updateBands();
+                }
+                if (this.state === 'FLYING') this.updatePhysics(dt);
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        let game;
+        window.onload = () => { game = new Game(); };
+
+    </script>
+</body>
+</html>
