@@ -325,14 +325,18 @@
                 this.distance = 0;
                 this.cheatBuffer = ""; // Initialize cheat buffer
                 
+                // Physics Vectors
                 this.velocity = new THREE.Vector3(0, 0, 0);
                 this.gravity = 9.8;
                 this.power = 0;
                 
-                // SLOWER PROGRESSION: Higher base costs, slower growth
+                // --- FPS FIX: Use THREE.Clock for Delta Time ---
+                this.clock = new THREE.Clock();
+
+                // Upgrades - Using values from your snippet
                 this.upgrades = {
                     slingshot: { level: 1, cost: 100, base: 12, growth: 1.8 }, 
-                    aero: { level: 1, cost: 150, drag: 0.94, lift: 0.04, growth: 1.8 }, // Started with worse drag (0.94)
+                    aero: { level: 1, cost: 150, drag: 0.94, lift: 0.04, growth: 1.8 }, 
                     money: { level: 1, cost: 120, mult: 1, growth: 1.7 }
                 };
 
@@ -761,7 +765,13 @@
                 // Clamp to prevent stall
                 if(drag < 0.90) drag = 0.90;
 
-                this.velocity.multiplyScalar(drag);
+                // --- FPS FIX: DELTA TIME SCALING ---
+                // Scale drag logic: drag is per-frame at 60fps.
+                // dt = 1/60s -> ratio 1.0. 
+                const timeRatio = dt * 60;
+                const dragFactor = Math.pow(drag, timeRatio);
+
+                this.velocity.multiplyScalar(dragFactor);
                 this.velocity.y -= this.gravity * dt * 0.5;
 
                 const speed = this.velocity.length();
@@ -878,18 +888,26 @@
 
             animate() {
                 requestAnimationFrame(() => this.animate());
-                const dt = 0.016; this.time += dt;
+                
+                // Get Delta Time from Three.js Clock, cap it at 0.1s to prevent explosions on lag
+                const dt = Math.min(this.clock.getDelta(), 0.1);
+                
+                this.time += dt;
 
                 if (this.state === 'CHARGING') {
-                    if (this.power < 100) this.power += 1.0; // Slower charge
+                    // Power charge rate normalized to time (60.0 units per second -> same as 1.0 per frame at 60fps)
+                    if (this.power < 100) this.power += 60.0 * dt; 
                     else this.power = 100;
+                    
                     const back = (this.power/100)*4;
                     this.plane.position.set(-2-back, 4-back*0.2, 0);
                     this.plane.position.y += (Math.random()-0.5)*0.05;
                     document.getElementById('power-bar').style.width = this.power + '%';
                     this.updateBands();
                 }
+                
                 if (this.state === 'FLYING') this.updatePhysics(dt);
+                
                 this.renderer.render(this.scene, this.camera);
             }
         }
